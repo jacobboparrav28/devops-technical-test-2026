@@ -18,22 +18,35 @@ steps:
         "us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api:$SHORT_SHA"
       ]
 
-  - name: 'gcr.io/cloud-builders/helm' # Cambio clave aquí
-    env:
-      - 'CLOUDSDK_CONTAINER_CLUSTER=staging-cluster'
-      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+
+  # Get GKE credentials (shared kubeconfig)
+  - name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
     args:
-      - 'upgrade'
-      - '--install'
-      - 'devops-test-api'
-      - './helm/devops-test-api'
-      - '--namespace'
-      - 'staging'
-      - '--create-namespace'
-      - '--set'
-      - 'image.repository=us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api'
-      - '--set'
-      - 'image.tag=$SHORT_SHA'
+      - -c
+      - |
+        mkdir -p /workspace/.kube
+        export KUBECONFIG=/workspace/.kube/config
+        gcloud container clusters get-credentials staging-cluster \
+          --region us-central1 \
+          --project $PROJECT_ID
+
+  # Deploy with Helm
+  - name: alpine/helm:3.14.0
+    env:
+      - KUBECONFIG=/workspace/.kube/config
+    args:
+      - upgrade
+      - --install
+      - devops-test-api
+      - ./helm/devops-test-api
+      - --namespace
+      - staging
+      - --create-namespace
+      - --set
+      - image.repository=us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api
+      - --set
+      - image.tag=$SHORT_SHA
 
 images:
   - us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api:$SHORT_SHA
