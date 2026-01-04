@@ -20,15 +20,11 @@ steps:
 
   # Obtener credenciales GKE
   - name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
     args:
-      [
-        "container",
-        "clusters",
-        "get-credentials",
-        "staging-cluster",
-        "--region",
-        "us-central1"
-      ]
+      - -c
+      - |
+        gcloud container clusters get-credentials staging-cluster --region us-central1 --project $PROJECT_ID
 
   # Deploy con Helm (GitOps)
   - name: alpine/helm:3.14.0
