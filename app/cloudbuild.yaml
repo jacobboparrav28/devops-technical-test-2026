@@ -22,6 +22,13 @@ steps:
       - |
         set -e
 
+        echo "Installing kubectl..."
+        apt-get update -y
+        apt-get install -y kubectl
+
+        echo "Installing gke-gcloud-auth-plugin..."
+        apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin
+
         echo "Installing Helm..."
         curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
@@ -36,6 +43,7 @@ steps:
           --create-namespace \
           --set image.repository=us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api \
           --set image.tag=$SHORT_SHA
+
 
 images:
   - us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api:$SHORT_SHA
