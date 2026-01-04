@@ -1,6 +1,7 @@
 steps:
   # Build imagen
   - name: gcr.io/cloud-builders/docker
+    dir: app
     args:
       [
         "build",
