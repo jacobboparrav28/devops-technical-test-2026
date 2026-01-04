@@ -1,0 +1,11 @@
+# Build the Docker image
+docker build -t devops-demo-api:1.0.0 .
+# or
+docker build --no-cache -t devops-demo-api:1.0.0 .
+
+# Run the Docker container
+docker run -p 8080:8080 devops-demo-api:1.0.0
+
+# Access the API at http://localhost:8080
+curl http://localhost:8080/health
+curl http://localhost:8080/transaction
