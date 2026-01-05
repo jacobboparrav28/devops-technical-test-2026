@@ -17,3 +17,7 @@ def transaction():
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "hostname": socket.gethostname()
     }
+
+@app.get("/test")
+def test():
+    return {"message": "This is a test endpoint."}
