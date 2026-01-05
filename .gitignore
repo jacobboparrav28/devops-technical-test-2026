@@ -4,3 +4,4 @@ terraform.tfstate.backup
 .env
 __pycache__/
 *.pyc
+venv/

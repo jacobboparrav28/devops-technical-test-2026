@@ -1,0 +1,15 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: api-scaler
+  namespace: staging
+spec:
+  scaleTargetRef:
+    name: devops-test-api-devops-test-api
+  minReplicaCount: 0
+  triggers:
+  - type: gcp-stackdriver
+    metadata:
+      filter: 'resource.type = "k8s_container" AND metric.type = "kubernetes.io/container/cpu/usage_time"'
+      value: "50"
+      credentialsFromEnv: GCP_SA_JSON
