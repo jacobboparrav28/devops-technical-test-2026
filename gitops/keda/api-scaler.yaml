@@ -7,9 +7,16 @@ spec:
   scaleTargetRef:
     name: devops-test-api-devops-test-api
   minReplicaCount: 0
+  maxReplicaCount: 10
   triggers:
   - type: gcp-stackdriver
+    authenticationRef:               
+      name: gcp-stackdriver-auth     
     metadata:
-      filter: 'resource.type = "k8s_container" AND metric.type = "kubernetes.io/container/cpu/usage_time"'
-      value: "50"
-      credentialsFromEnv: GCP_SA_JSON
+      projectId: devops-test-2026
+      filter: metric.type="loadbalancing.googleapis.com/https/request_count"
+      targetValue: "5"
+      alignmentPeriodSeconds: "60"
+      perSeriesAligner: ALIGN_RATE
+
+## Cpu ussage removed as scaling metric in favor of GCP Stackdriver request count metric

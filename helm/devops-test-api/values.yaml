@@ -25,6 +25,7 @@ probes:
 labels:
   app: devops-demo-api
 
+
 # Image -- changed by region
 # tag -- changed by pipeline
 # replicas -- changed by enironment

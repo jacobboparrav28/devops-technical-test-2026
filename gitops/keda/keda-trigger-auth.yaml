@@ -1,0 +1,8 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: gcp-stackdriver-auth
+  namespace: staging
+spec:
+  podIdentity:
+    provider: gcp

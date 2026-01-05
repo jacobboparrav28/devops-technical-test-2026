@@ -375,6 +375,14 @@ Correct backend reference:
 
         kubectl get crd | grep keda
 
+**Apply keda-trigger-auth.yaml**
+**permissions:**
+        gcloud iam service-accounts create devops-test-api-sa  --project devops-test-2026
+
+         gcloud projects add-iam-policy-binding devops-test-2026 --member="serviceAccount:devops-test-api-sa@devops-test-2026.iam.gserviceaccount.com" --role="roles/monitoring.viewer" 
+
+        kubectl apply -f infra/keda/keda-trigger-auth.yaml
+
 **Apply scaler:**
 
         kubectl apply -f api-scaler.yaml
