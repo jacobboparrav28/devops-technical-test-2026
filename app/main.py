@@ -21,3 +21,7 @@ def transaction():
 @app.get("/tests")
 def test():
     return {"message": "This is a test endpoint."}
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the cloud-app API!"}

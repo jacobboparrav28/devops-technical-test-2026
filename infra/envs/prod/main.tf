@@ -7,9 +7,9 @@ module "network" {
   source = "../../modules/network"
 
   project_id   = var.project_id
-  network_name = "prod-vpc" # Cambiamos el nombre para diferenciarlo
+  network_name = "prod-vpc"
   region       = var.region
-  subnet_cidr  = "10.20.0.0/16" # Usamos un rango diferente a staging
+  subnet_cidr  = "10.20.0.0/16" 
 }
 
 module "gke" {
@@ -37,7 +37,6 @@ module "app_node_pool" {
   node_pool_name = "prod-pool"
   machine_type   = "e2-medium"
   
-  # CONFIGURACIÓN PARA 300 GB TOTALES
-  node_count     = 1   # 3 Máquinas
-  disk_size_gb   = 50 # 100 GB cada una
+  node_count     = 1  
+  disk_size_gb   = 50 
 }
