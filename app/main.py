@@ -18,6 +18,6 @@ def transaction():
         "hostname": socket.gethostname()
     }
 
-@app.get("/tests")
+@app.get("/t")
 def test():
     return {"message": "This is a test endpoint."}
