@@ -1,52 +1,53 @@
 steps:
-  # Build image
   - name: gcr.io/cloud-builders/docker
     dir: app
     args:
       - build
       - -t
       - us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api:$SHORT_SHA
+      - -t
+      - us-east1-docker.pkg.dev/$PROJECT_ID/prod-repo/devops-demo-api:$SHORT_SHA
       - .
 
-  # Push image
   - name: gcr.io/cloud-builders/docker
-    args:
-      - push
-      - us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api:$SHORT_SHA
+    args: ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api:$SHORT_SHA']
 
-  # Deploy to GKE with Helm (Cloud SDK image)
+  - name: gcr.io/cloud-builders/docker
+    args: ['push', 'us-east1-docker.pkg.dev/$PROJECT_ID/prod-repo/devops-demo-api:$SHORT_SHA']
+
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: bash
     args:
       - -c
       - |
         set -e
-
-        echo "Installing kubectl..."
-        apt-get update -y
-        apt-get install -y kubectl
-
-        echo "Installing gke-gcloud-auth-plugin..."
-        apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin
-
-        echo "Installing Helm..."
+        apt-get update -y && apt-get install -y kubectl google-cloud-sdk-gke-gcloud-auth-plugin
         curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
-        echo "Getting GKE credentials..."
-        gcloud container clusters get-credentials staging-cluster \
-          --region us-central1 \
-          --project $PROJECT_ID
-
-        echo "Deploying with Helm..."
+        # --- Deploy to staging ---
+        echo "Cambiando contexto a STAGING..."
+        gcloud container clusters get-credentials staging-cluster --region us-central1 --project $PROJECT_ID
+        
         helm upgrade --install devops-test-api ./helm/devops-test-api \
           --namespace staging \
           --create-namespace \
           --set image.repository=us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api \
           --set image.tag=$SHORT_SHA
 
+        # --- Deploy to prod ---
+        echo "Cambiando contexto a PROD..."
+        gcloud container clusters get-credentials prod-cluster --region us-east1 --project $PROJECT_ID
+        
+        helm upgrade --install devops-test-api ./helm/devops-test-api \
+          --namespace prod \
+          --create-namespace \
+          -f ./helm/values-prod.yaml \
+          --set image.repository=us-east1-docker.pkg.dev/$PROJECT_ID/prod-repo/devops-demo-api \
+          --set image.tag=$SHORT_SHA
 
 images:
   - us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api:$SHORT_SHA
+  - us-east1-docker.pkg.dev/$PROJECT_ID/prod-repo/devops-demo-api:$SHORT_SHA
 
 options:
   logging: CLOUD_LOGGING_ONLY

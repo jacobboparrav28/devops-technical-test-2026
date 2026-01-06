@@ -1,0 +1,24 @@
+# Configuración específica para PROD
+replicaCount: 2
+
+# El repositorio de us-east1 que creamos
+image:
+  repository: us-east1-docker.pkg.dev/[PROJECT_ID]/prod-repo/devops-demo-api
+  pullPolicy: Always
+
+# Recursos de CPU/RAM para que no saturen los nodos e2-medium
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+# ACTIVACIÓN DEL GATEWAY API
+gateway:
+  enabled: true
+
+service:
+  type: ClusterIP # Obligatorio para Gateway API
+  port: 80

@@ -1,0 +1,31 @@
+{{- if .Values.gateway.enabled }}
+# Definición del Load Balancer (Google Cloud L7)
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "devops-test-api.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+spec:
+  gatewayClassName: gke-l7-gxlb
+  listeners:
+  - name: http
+    protocol: HTTP
+    port: 80
+    allowedRoutes:
+      namespaces:
+        from: Same
+---
+# Reglas de enrutamiento hacia tu Service
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "devops-test-api.fullname" . }}-route
+  namespace: {{ .Release.Namespace }}
+spec:
+  parentRefs:
+  - name: {{ include "devops-test-api.fullname" . }}-gateway
+  rules:
+  - backendRefs:
+    - name: {{ include "devops-test-api.fullname" . }}
+      port: {{ .Values.service.port }}
+{{- end }}

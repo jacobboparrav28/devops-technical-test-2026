@@ -7,7 +7,9 @@ resource "google_container_node_pool" "this" {
   node_count = var.node_count
   node_config {
     machine_type = var.machine_type
-    disk_size_gb = 50
+    disk_size_gb = var.disk_size_gb
+
+    disk_type = "pd-standard"
 
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"

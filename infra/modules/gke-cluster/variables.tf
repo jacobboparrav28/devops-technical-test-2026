@@ -17,3 +17,8 @@ variable "network" {
 variable "subnetwork" {
   type        = string
 }
+
+variable "enable_autopilot" {
+  type        = bool
+  default     = false
+}

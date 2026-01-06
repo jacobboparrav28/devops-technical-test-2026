@@ -1,47 +1,33 @@
 resource "google_container_cluster" "container_cluster" {
-  name = var.cluster_name
+  name     = var.cluster_name
   location = var.region
-  project = var.project_id
+  project  = var.project_id
 
-  network = var.network
+  deletion_protection = false
+  enable_autopilot = var.enable_autopilot ? true : null
+
+  remove_default_node_pool = var.enable_autopilot ? null : true
+  initial_node_count       = var.enable_autopilot ? null : 1
+
+  network    = var.network
   subnetwork = var.subnetwork
-  enable_autopilot = true
 
-  logging_service    = "logging.googleapis.com/kubernetes"
-  monitoring_service = "monitoring.googleapis.com/kubernetes"
+  dynamic "node_config" {
+    for_each = var.enable_autopilot ? [] : [1]
+    content {
+      disk_size_gb = 50
+      disk_type = "pd-standard"
+    }
+  }
+
+  ip_allocation_policy {
+    cluster_ipv4_cidr_block  = "/14"
+    services_ipv4_cidr_block = "/20"
+  }
+
+  private_cluster_config {
+    enable_private_nodes    = true
+    enable_private_endpoint = false
+    master_ipv4_cidr_block  = "172.16.0.0/28"
+  }
 }
-
-
-
-
-// Manual setup
-/* resource "google_container_cluster" "container_cluster" {
-    name = var.cluster_name
-    location = var.region
-    project = var.project_id
-
-    network = var.network
-    subnetwork = var.subnetwork
-
-    remove_default_node_pool = true
-    initial_node_count = 1
-
-    logging_service = "logging.googleapis.com/kubernetes"
-    monitoring_service = "monitoring.googleapis.com/kubernetes"
-
-    // Basic security settings
-    master_auth {
-      client_certificate_config {
-        issue_client_certificate = false
-      }
-    }
-
-    // shielded nodes
-    // each node will have its own settings, but we can set defaults here
-    node_config {
-        shielded_instance_config {
-            enable_secure_boot = true
-            enable_integrity_monitoring = true
-        }
-    }
-} */
