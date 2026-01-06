@@ -25,6 +25,8 @@ probes:
 labels:
   app: devops-demo-api
 
+gateway:
+  enabled: false
 
 # Image -- changed by region
 # tag -- changed by pipeline
