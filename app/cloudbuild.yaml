@@ -41,7 +41,7 @@ steps:
         helm upgrade --install devops-test-api ./helm/devops-test-api \
           --namespace prod \
           --create-namespace \
-          -f ./helm/values.yaml \
+          -f ./helm/devops-test-api-prod/values.yaml \
           --set image.repository=us-east1-docker.pkg.dev/$PROJECT_ID/prod-repo/devops-demo-api \
           --set image.tag=$SHORT_SHA
 
