@@ -1,0 +1,7 @@
+{{- define "devops-test-api.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create -}}
+{{- default (printf "%s-sa" .Release.Name) .Values.serviceAccount.name -}}
+{{- else -}}
+{{- .Values.serviceAccount.name -}}
+{{- end -}}
+{{- end -}}

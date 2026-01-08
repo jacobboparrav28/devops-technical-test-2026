@@ -1,0 +1,38 @@
+replicaCount: 1
+
+image:
+  repository: us-east1-docker.pkg.dev/devops-test-2026/prod-repo/devops-demo-api
+  tag: "214857d"
+  pullPolicy: IfNotPresent
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+
+#gateway:
+#  enabled: true
+#  className: gke-l7-global-external-managed
+#  hostname: api.devopstestapi2026.online
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+  annotations:
+    cloud.google.com/neg: '{"exposed_ports":{"80":{}}}'
+
+serviceAccount:
+  create: true
+  name: "devops-test-api-sa"
+
+probes:
+  liveness:
+    path: /health 
+    port: 8080
+  readiness:
+    path: /health 
+    port: 8080

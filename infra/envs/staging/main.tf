@@ -18,6 +18,7 @@ module "gke" {
   project_id   = var.project_id
   cluster_name = "staging-cluster"
   region       = var.region
+  enable_autopilot = true
 
   network    = module.network.network_name
   subnetwork = module.network.subnet_name
@@ -31,6 +32,7 @@ module "artifact_registry" {
   repo_name  = var.artifact_registry_repo
 }
 
+//  Maual
 /* module "app_node_pool" {
   source = "../../modules/node-pool"
 

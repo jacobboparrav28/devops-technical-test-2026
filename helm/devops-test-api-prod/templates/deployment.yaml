@@ -1,0 +1,36 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devops-api
+  namespace: prod
+  labels:
+    app: devops-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: devops-api
+  template:
+    metadata:
+      labels:
+        app: devops-api
+    spec:
+      serviceAccountName:  {{ include "devops-test-api.serviceAccountName" . }}
+      containers:
+      - name: api
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy}}
+
+        ports:
+        - containerPort: {{ .Values.service.targetPort }}
+
+        resources:
+          requests:
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
+
+## “El deployment está parametrizado completamente por values, lo que permite desplegar el mismo chart en múltiples clusters y regiones sin modificar templates.”

@@ -2,21 +2,29 @@ apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
   name: api-scaler
-  namespace: staging
+  namespace: prod
 spec:
   scaleTargetRef:
-    name: devops-test-api-devops-test-api
-  minReplicaCount: 0
-  maxReplicaCount: 10
+    name: devops-test-api-devops-api
+    kind: Deployment
+  
+  minReplicaCount: 0   
+  maxReplicaCount: 10  
+  pollingInterval: 30  
+  cooldownPeriod: 300  
+
   triggers:
   - type: gcp-stackdriver
-    authenticationRef:               
-      name: gcp-stackdriver-auth     
     metadata:
       projectId: devops-test-2026
-      filter: metric.type="loadbalancing.googleapis.com/https/request_count"
-      targetValue: "5"
-      alignmentPeriodSeconds: "60"
-      perSeriesAligner: ALIGN_RATE
 
-## Cpu ussage removed as scaling metric in favor of GCP Stackdriver request count metric
+      filter: 'resource.type="k8s_container" AND resource.labels.container_name="devops-test-api-devops-api" AND textPayload:"/transaction"'
+  
+      targetValue: "5"
+    authenticationRef:
+      name: gcp-stackdriver-auth
+
+  - type: cpu
+    metadata:
+      type: Utilization
+      value: "70" 
