@@ -44,7 +44,7 @@ extensible to enterprise-grade environments.
                       └───────────┬────────────┘
                                   │
                       ┌───────────▼────────────┐
-                      │   GKE Autopilot Pods   │
+                      │   GKE   Pods   │
                       │   (FastAPI App)        │
                       └───────────┬────────────┘
                                   │
@@ -52,7 +52,7 @@ extensible to enterprise-grade environments.
             │ Google Cloud Observability                 │
             │ - Cloud Monitoring (metrics & alerts)     │
             │ - Cloud Logging (logs)                     │
-            │ - Managed Prometheus                       │
+            │ - Grafana                       │
             └───────────────────────────────────────────┘
 
 
@@ -76,10 +76,7 @@ extensible to enterprise-grade environments.
 │   |    └── gke-cluster/
 │   |    └── network/
 │   |    └── node-pool/
-│   ├── networking/
-│   └── observability/
-│       └── prometheus/
-├── cloudbuild.yaml
+|
 ├── ejec.ps1                  # Traffic test    
 └── README.md
 
@@ -96,7 +93,7 @@ extensible to enterprise-grade environments.
 | Networking      | Gateway API                  | Kubernetes-native, future-proof |
 | Edge Security   | Cloudflare                   | TLS, CDN, DDoS protection |
 | Autoscaling     | KEDA                         | Event-driven, scale-to-zero capable|
-| Observability   | Cloud Monitoring & Logging   | Zero-maintenance, integrated |
+| Observability   | Cloud Monitoring & Logging + grafana  | Zero-maintenance, integrated |
 | Secrets         | Secret Manager + WI          | No plaintext secrets |
 ---
 
@@ -160,11 +157,11 @@ This allows environment-based flexibility without refactoring infrastructure cod
 Create and expose an Artifact Registry repository (via Terraform).
 
 **Example output:**
-- us-central1-docker.pkg.dev/devops-test-2026/staging-repo
+- us-east1-docker.pkg.dev/devops-test-2026/prod-repo
 
 **Authenticate Docker:**
 
-- gcloud auth configure-docker us-central1-docker.pkg.dev
+- gcloud auth configure-docker us-east1-docker.pkg.dev
 
 
 **Verify:**
@@ -182,16 +179,16 @@ The application image:
 
 **Build & Push (manual validation)**
 - docker build -t devops-demo-api:1.0.0 .
-- docker tag devops-demo-api:1.0.0 \ us-central1-docker.pkg.dev/devops-test-2026/staging-repo/devops-demo-api:1.0.0
+- docker tag devops-demo-api:1.0.0 \ us-east1-docker.pkg.dev/devops-test-2026/prod-repo/devops-demo-api:1.0.0
 
-- docker push us-central1-docker.pkg.dev/devops-test-2026/staging-repo/devops-demo-api:1.0.0
+- docker push us-east1-docker.pkg.dev/devops-test-2026/prod-repo/devops-demo-api:1.0.0
 
-##5. Kubernetes Access (GKE Autopilot)
+##5. Kubernetes Access
 
 **Fetch cluster credentials:**
 
 - gcloud container clusters list
-- gcloud container clusters get-credentials staging-cluster \ --region us-central1 \ --project devops-test-2026
+- gcloud container clusters get-credentials prod-cluster \ --region us-east1 \ --project devops-test-2026
 
 **If required:**
 
@@ -223,18 +220,18 @@ Helm Design Principles:
 **Install:**
 
         helm install devops-test-api ./helm/devops-test-api \
-        --namespace staging \
+        --namespace prod \
         --create-namespace
 
 
 Verify:
 
-        kubectl get pods -n staging
+        kubectl get pods -n prod
 
 
 **Test locally:**
 
-        kubectl port-forward svc/devops-test-api-devops-test-api 8080:80 -n staging
+        kubectl port-forward svc/devops-test-api-devops-test-api 8080:80 -n prod
         curl http://localhost:8080/health
 
 
@@ -256,6 +253,9 @@ Readiness and liveness probes prevented traffic until the application was health
         gcloud projects add-iam-policy-binding $PROJECT_ID \
         --member="serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com" \
         --role="roles/artifactregistry.writer"
+
+**Link k8s SA with GCP SA for Workload identity when needed: pulling images from GCP** 
+        gcloud iam service-accounts add-iam-policy-binding   devops-test-api@devops-test-2026.iam.gserviceaccount.com   --role roles/iam.workloadIdentityUser   --member "serviceAccount:devops-test-2026.svc.id.goog[prod/devops-test-api-sa]" 
 
 
 **Verify:**
@@ -281,17 +281,17 @@ Authentication is handled automatically by gcr.io/cloud-builders/helm.
     args:
         - build
         - -t
-        - us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api:$SHORT_SHA
+        - us-east1-docker.pkg.dev/$PROJECT_ID/prod-repo/devops-demo-api:$SHORT_SHA
         - .
 
     - name: gcr.io/cloud-builders/docker
     args:
         - push
-        - us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api:$SHORT_SHA
+        - us-central1-docker.pkg.dev/$PROJECT_ID/prod-repo/devops-demo-api:$SHORT_SHA
 
     - name: gcr.io/cloud-builders/helm
     env:
-        - CLOUDSDK_CONTAINER_CLUSTER=staging-cluster
+        - CLOUDSDK_CONTAINER_CLUSTER=prod-cluster
         - CLOUDSDK_COMPUTE_REGION=us-central1
     args:
         - upgrade
@@ -299,10 +299,10 @@ Authentication is handled automatically by gcr.io/cloud-builders/helm.
         - devops-test-api
         - ./helm/devops-test-api
         - --namespace
-        - staging
+        - prod
         - --create-namespace
         - --set
-        - image.repository=us-central1-docker.pkg.dev/$PROJECT_ID/staging-repo/devops-demo-api
+        - image.repository=us-east1-docker.pkg.dev/$PROJECT_ID/prod-repo/devops-demo-api
         - --set
         - image.tag=$SHORT_SHA
 
@@ -310,7 +310,7 @@ Authentication is handled automatically by gcr.io/cloud-builders/helm.
 
 **Enable Gateway API:**
 
-        gcloud container clusters update staging-cluster \
+        gcloud container clusters update prod-cluster \
         --region us-central1 \
         --gateway-api=standard
 
@@ -328,7 +328,7 @@ Authentication is handled automatically by gcr.io/cloud-builders/helm.
 
 **Get public IP:**
 
-        kubectl get gateway -n staging
+        kubectl get gateway -n prod
 
 
 **Cloudflare Edge Security**
@@ -355,7 +355,7 @@ Correct backend reference:
 
 **Validate:**
 
-        kubectl get httproute devops-api-route -n staging -o yaml
+        kubectl get httproute devops-api-route -n prod -o yaml
 
 
 **Test:**
@@ -394,7 +394,13 @@ Correct backend reference:
 
 ## 10. Observability
 
-This platform uses Google Cloud Observability by default:
+**Install Grafana to the project**
+
+        helm repo add grafana https://grafana.github.io/helm-charts
+        helm upgrade --install grafana grafana/grafana `
+        --namespace monitoring --create-namespace `
+        --set persistence.enabled=true
+
 
 - Metrics: Cloud Monitoring
 - Logs: Cloud Logging
@@ -402,27 +408,16 @@ This platform uses Google Cloud Observability by default:
 
 **Enable managed Prometheus:**
 
-        gcloud container clusters update staging-cluster \
+        gcloud container clusters update staging-prod \
         --enable-managed-prometheus \
         --zone us-central1
 
+**Getting user:**
+        $secret = kubectl get secret --namespace monitoring grafana -o jsonpath="{.data.admin-password}"
+        [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($secret))
 
-Unified dashboards provide:
-
-- API latency (P95)
-- Request rate
-- Pod health
-- CPU / memory usage
-
-**Prometheus + Grafana is documented as an alternative but not deployed by default to align with GKE Autopilot best practices.**
-
-**Final Notes:**
-
-- No secrets are stored in plaintext
-- CI/CD follows GitOps principles
-- Networking is cloud-native and multi-cluster ready
-- Observability is enabled by default
-- The system is production-aligned, not demo-only
+**Access Grafana:**
+        kubectl port-forward -n monitoring svc/grafana 3000:80
 
 
 ## QUICK SUMMARY
@@ -464,7 +459,7 @@ The CI pipeline is implemented using Google Cloud Build.
 
 4. Deploy
 
-        - Helm-based deployment to GKE (staging)
+        - Helm-based deployment to GKE (staging - prod)
 
         Document: cloudbuild.yaml
 
@@ -544,13 +539,15 @@ Modular structure:
 
         GKE
 
-        Environment-based (staging)
+        Environment-based (staging - prod)
 
         Designed for multi-cluster / multi-region
 
         Kubernetes
 
         GKE Autopilot (managed operations)
+
+        GKE Manually managed
 
         Helm for application deployment
 
@@ -573,39 +570,14 @@ Modular structure:
 
         Alerting supported
 
-### Alternative Stack (Documented Only)
-
-        Prometheus
-
         Grafana
 
-        Alertmanager
-
-        Prometheus/Grafana manifests are included but not deployed by default
-        to avoid unnecessary cost and complexity in GKE Autopilot.
-
-###  Multi-Cluster Strategy
-
-        Although only one cluster is deployed for the demo, the architecture supports:
-
-        Multiple environments
-
-        Multiple clusters
-
-        Multi-region traffic routing
-
-        This is achieved through:
-
-        Terraform environment separation
-
-        Helm-based releases
-
-        Gateway API abstraction
 
 ## Multi-Cluster Strategy
 
-Although this implementation deploys a single GKE cluster (staging),
-the architecture is designed to support a multi-cluster setup.
+This implementation runs two clusters running in different regions:
+stagging-cluster = us-central1
+prod-cluster = us-east1
 
 ### Strategy
 
@@ -635,29 +607,4 @@ the architecture is designed to support a multi-cluster setup.
 
         Application is deployed automatically to GKE
 
-### Design Decisions Summary
 
-        GKE Autopilot → Reduced operational overhead
-
-        Cloud Build → Native CI/CD
-
-        Gateway API → Future-proof networking
-
-        Cloudflare → Simple and effective perimeter security
-
-        Cloud Observability → Zero-maintenance monitoring
-
-        Secret Manager → Secure-by-design secrets handling
-
-
-### Future Improvements
-
-        True multi-cluster deployment
-
-        ArgoCD for GitOps in Standard clusters
-
-        Cloudflare WAF Pro
-
-        Canary deployments
-
-        Service mesh integration
